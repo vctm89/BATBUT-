@@ -242,8 +242,8 @@ startupLog('Music commands loaded');
   this.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (!message.guild) return;
-
-    if (message.content.startsWith('!play')) {
+console.log('MESSAGE RECEIVED:', message.content);
+    if (message.content.startsWith('play')) {
   const query = message.content.slice('!play'.length).trim();
 
   if (!query) {
