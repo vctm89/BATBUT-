@@ -3,7 +3,13 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
-
+import {
+  joinVoiceChannel,
+  createAudioPlayer,
+  createAudioResource,
+  AudioPlayerStatus,
+  NoSubscriberBehavior,
+} from '@discordjs/voice';
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
 import { getGuildConfig } from './services/guildConfig.js';
@@ -79,7 +85,9 @@ class TitanBot extends Client {
       startupLog('Loading handlers...');
       await this.loadHandlers();
       startupLog('Handlers loaded');
-      
+      startupLog('Loading music commands...');
+this.setupMusicCommands();
+startupLog('Music commands loaded');
       startupLog('Logging into Discord...');
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
@@ -227,6 +235,55 @@ class TitanBot extends Client {
     startServer(configuredPort, 0);
   }
 
+
+  setupMusicCommands() {
+  this.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+    if (!message.guild) return;
+
+    if (message.content === '!play') {
+      const voiceChannel = message.member?.voice?.channel;
+
+      if (!voiceChannel) {
+        return message.reply('ادخل روم صوتي بالأول عشان أشغّل الصوت.');
+      }
+
+      try {
+        const connection = joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId: message.guild.id,
+          adapterCreator: message.guild.voiceAdapterCreator,
+        });
+
+        const player = createAudioPlayer({
+          behaviors: {
+            noSubscriber: NoSubscriberBehavior.Play,
+          },
+        });
+
+        const resource = createAudioResource('./song.mp3');
+
+        connection.subscribe(player);
+        player.play(resource);
+
+        await message.reply('United Arab Bot شغّل الصوت 🎶');
+
+        player.on(AudioPlayerStatus.Idle, () => {
+          connection.destroy();
+        });
+
+        player.on('error', async (error) => {
+          logger.error('Music player error:', error);
+          await message.reply('صار خطأ وأنا بشغّل الصوت.');
+          connection.destroy();
+        });
+      } catch (error) {
+        logger.error('Music command error:', error);
+        await message.reply('ما قدرت أشغّل الصوت. تأكد إن ملف song.mp3 موجود.');
+      }
+    }
+  });
+}
   setupCronJobs() {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
     cron.schedule('* * * * *', () => checkGiveaways(this));
