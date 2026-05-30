@@ -10,6 +10,8 @@ import {
   AudioPlayerStatus,
   NoSubscriberBehavior,
 } from '@discordjs/voice';
+import play from 'play-dl';
+import yts from 'yt-search';
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
 import { getGuildConfig } from './services/guildConfig.js';
@@ -241,7 +243,12 @@ startupLog('Music commands loaded');
     if (message.author.bot) return;
     if (!message.guild) return;
 
-    if (message.content === '!play') {
+    if (message.content.startsWith('!play')) {
+  const query = message.content.slice('!play'.length).trim();
+
+  if (!query) {
+    return message.reply('اكتب اسم الأغنية بعد الأمر. مثال: `!play fairuz`');
+  }
       const voiceChannel = message.member?.voice?.channel;
 
       if (!voiceChannel) {
@@ -261,12 +268,24 @@ startupLog('Music commands loaded');
           },
         });
 
-        const resource = createAudioResource('./song.mp3');
+        await message.reply(`عم بدوّر على: **${query}** 🔎`);
+
+const searchResult = await yts(query);
+const video = searchResult.videos[0];
+
+if (!video) {
+  return message.reply('ما لقيت أغنية بهذا الاسم.');
+}
+
+const stream = await play.stream(video.url);
+const resource = createAudioResource(stream.stream, {
+  inputType: stream.type,
+});
 
         connection.subscribe(player);
         player.play(resource);
 
-        await message.reply('United Arab Bot شغّل الصوت 🎶');
+        await message.reply(`United Arab Bot شغّل: **${video.title}** 🎶`);
 
         player.on(AudioPlayerStatus.Idle, () => {
           connection.destroy();
@@ -279,7 +298,7 @@ startupLog('Music commands loaded');
         });
       } catch (error) {
         logger.error('Music command error:', error);
-        await message.reply('ما قدرت أشغّل الصوت. تأكد إن ملف song.mp3 موجود.');
+        await message.reply('ما قدرت أشغّل الأغنية. جرّب اسم ثاني أو شوف اللوق في Railway.');
       }
     }
   });
