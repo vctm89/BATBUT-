@@ -243,7 +243,7 @@ startupLog('Music commands loaded');
     if (message.author.bot) return;
     if (!message.guild) return;
 console.log('MESSAGE RECEIVED:', message.content);
-    if (message.content.startsWith('play')) {
+    if (message.content.startsWith('!play')) {
   const query = message.content.slice('!play'.length).trim();
 
   if (!query) {
