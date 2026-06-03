@@ -1,5 +1,5 @@
 ﻿import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, EmbedBuilder, Events, PermissionsBitField } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
@@ -87,9 +87,13 @@ class TitanBot extends Client {
       startupLog('Loading handlers...');
       await this.loadHandlers();
       startupLog('Handlers loaded');
-      startupLog('Loading music commands...');
+     startupLog('Loading music commands...');
 this.setupMusicCommands();
 startupLog('Music commands loaded');
+
+startupLog('Loading rules command...');
+this.setupRulesCommand();
+startupLog('Rules command loaded');
       startupLog('Logging into Discord...');
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
@@ -105,7 +109,77 @@ startupLog('Music commands loaded');
       startupLog(
         `ONLINE ✅ | ${this.commands.size} commands loaded | ${handlerSummary} | Database: ${databaseMode}`
       );
-      
+      setupRulesCommand() {
+  const RULES_CHANNEL_ID = "1497968168285638727";
+
+  this.on(Events.MessageCreate, async (message) => {
+    if (message.author.bot) return;
+    if (!message.guild) return;
+    if (message.content !== "!sendrules") return;
+
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return message.reply("ما معك صلاحية تستخدم هذا الأمر.");
+    }
+
+    try {
+      const channel = await this.channels.fetch(RULES_CHANNEL_ID);
+
+      const rulesEmbed = new EmbedBuilder()
+        .setTitle("📜 قوانين ادارة سيرفر United Arab Kingdom")
+        .setDescription(`
+**1:** الرجاء احترام جميع الأعضاء وأيضًا الإدارة.
+
+**2:** الدخول بأكثر من حساب وهمي يجعلك عرضة للباند.
+
+**3:** يمنع النشر بأنواعه، خاص أو روم أو شات، ويعرضك للباند.
+
+**4:** يمنع القذف والسب والمساس بالدين بأي شكل من الأشكال.
+
+**5:** يمنع نشر الصور الشخصية أو الإباحية بشكل قطعي.
+
+**6:** يمنع العنصرية والتنمر بأي شكل من الأشكال، والاستفزاز المتكرر يعرضك للباند.
+
+**7:** يمنع منعًا باتًا المواضيع السياسية أو الدينية والنقاش بها.
+
+**8:** يمنع وضع أسماء أو صور غير لائقة بقصد إثارة الجدل والمشاكل، وتعرضك للباند.
+
+**9:** يمنع البيع والشراء داخل السيرفر.
+
+**10:** يمنع السبام وتكرار الرسائل بقصد التخريب أو الإزعاج.
+
+**11:** يمنع استخدام برامج تغيير الصوت وإزعاج الأعضاء.
+
+**12:** يمنع وضع كلمات مسيئة وروابط النشر في البايو أو البروفايل.
+
+**13:** يمنع رد الخطأ بالخطأ في أي مشكلة كانت.
+
+**14:** يمنع التحدث بالإجراءات الإدارية أو إجراء شخص بالسيرفر.
+
+**15:** في حال بدأت مشكلة مع أحد الأعضاء في السيرفر وانتقلت للخاص، سيتم التعامل مع المشكلة بحسب قوانين السيرفر.
+
+**16:** يرجى الجدية في الشكاوي سواءً في الدعم أو عند فتح تكت، والاحترام وتطبيق جميع قوانين الدسكورد.
+
+**17:** الرتب توزع من قبل أدمنز السيرفر. في حال طلبك لرتبة بشكل مستمر وإزعاج الأدمنز، سيتم إعطاؤك تايم أوت لمدة ساعة كاملة.
+
+━━━━━━━━━━━━━━
+
+**قوانين الديسكورد:**
+
+**1:** شروط وأحكام ديسكورد.  
+**2:** إرشادات مجتمعات ديسكورد.  
+**3:** سلوكيات المجتمعات الشريكة لديسكورد.
+`)
+        .setColor(0x2b2d31)
+        .setFooter({ text: "United Arab Kingdom • القوانين قابلة للتعديل من الإدارة" });
+
+      await channel.send({ embeds: [rulesEmbed] });
+      await message.reply("تم إرسال قوانين السيرفر ✅");
+    } catch (error) {
+      logger.error("Rules command error:", error);
+      await message.reply("صار خطأ وأنا بحاول أرسل القوانين.");
+    }
+  });
+}
       this.setupCronJobs();
     } catch (error) {
       logger.error('Failed to start bot:', error);
